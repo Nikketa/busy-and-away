@@ -1,0 +1,8 @@
+## Interface: 50400
+## Title: Busy and Away
+## Notes: Restores your DND message when flagged AFK.
+## Author: Niketa-Moonrunner (US)
+## Version: @project-version@
+## SavedVariables: BAA_DNDMSG, BAA_FLAGTYPE
+
+Core.lua
