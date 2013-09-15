@@ -38,7 +38,7 @@ local flag
 f:SetScript("OnEvent", function(self, event, ...)
 	if event == "ADDON_LOADED" then
 		local addon = ...
-		if addon == "Busy and Away" then
+		if addon == "BusyAndAway" then
 			print("|cffffff00Busy and Away:|r Use the command \"/baa\" for help and to set your preferences.")
 			
 			if not BAA_FLAGTYPE then
@@ -69,7 +69,7 @@ f:SetScript("OnEvent", function(self, event, ...)
 				ChatEdit_SendText(ChatFrame1EditBox)
 			end
 			
-			flag = true
+			flag = true			
 		elseif not UnitIsAFK("player") and not UnitIsDND("player") and BAA_DNDMSG then
 			if flag then
 				ChatFrame1EditBox:SetText("/busy "..BAA_DNDMSG)
