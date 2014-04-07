@@ -1,83 +1,94 @@
--- __________ Busy and Away by Niketa-Moonrunner (US) / http://niketa.net / addons@niketa.net __________ --
+-- Event Frame
+local events = CreateFrame("Frame")
+	  events:RegisterEvent("ADDON_LOADED")
+	  events:RegisterEvent("PLAYER_FLAGS_CHANGED")
+	  events:RegisterEvent("CHAT_MSG_BN_WHISPER")
+	  events:SetScript("OnEvent", function(self, event, ...)
+		  return self[event] and self[event](self, event, ...)
+	  end)
 
-SLASH_BUSYANDAWAY1 = "/baa"
-
-function SlashCmdList.BUSYANDAWAY(msg, editbox)
-	local cmd, arg = msg:match("^(%S*)%s*(.-)$")
-	
-	if cmd == "enable" then
-		BAA_FLAGTYPE = 1
-		print("|cffffff00Busy and Away:|r Your AFK message will be set to your DND message. Upon returning your DND message will still be restored.")
-	elseif cmd == "disable" then
-		BAA_FLAGTYPE = 2
-		print("|cffffff00Busy and Away:|r Your AFK message will no longer be set to your DND message.")
-	elseif cmd == "clear" then
-		if UnitIsDND("Player") then
-			ChatFrame1EditBox:SetText("/busy")
-			ChatEdit_SendText(ChatFrame1EditBox)
-		end
-		BAA_DNDMSG = nil
-		
-		print("|cffffff00Busy and Away:|r Your DND message has been cleared.")
+-- My Lazy Functions
+local function Set(var, val)
+	if BusyAndAwayDB["settings"][var] then
+		BusyAndAwayDB["settings"][var] = val
 	else
-		print("|cffffff00Busy and Away")
-		print("To manually clear your DND message, use the command \"/baa clear\".")
-		print("To set your AFK message to your busy message, use the command \"/baa enable\". Keep in mind that doing this only makes your AFK message match your DND message. When you come back from AFK, your DND will still be restored. To disable, use \"/baa disable\".")
+		BusyAndAwayDB[var] = val
 	end
 end
 
-local f = CreateFrame("Frame")
+local function Grab(var)
+	if BusyAndAwayDB["settings"][var] then
+		return BusyAndAwayDB["settings"][var]
+	else
+		return BusyAndAwayDB[var]
+	end
+end
 
-f:RegisterEvent("ADDON_LOADED")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
-f:RegisterEvent("CHAT_MSG_SYSTEM")
-f:RegisterEvent("PLAYER_FLAGS_CHANGED")
+-- Hijack Blizz DND slash commands.
+local SetPlayerDND = SlashCmdList["CHAT_DND"]
 
-local flag
+SLASH_BUSYANDAWAYA1, SLASH_BUSYANDAWAYA2 = "/busy", "/dnd"
 
-f:SetScript("OnEvent", function(self, event, ...)
-	if event == "ADDON_LOADED" then
-		local addon = ...
-		if addon == "BusyAndAway" then
-			print("|cffffff00Busy and Away:|r Use the command \"/baa\" for help and to set your preferences.")
-			
-			if not BAA_FLAGTYPE then
-				BAA_FLAGTYPE = 1
-				
-			elseif BAA_FLAGTYPE == 1 then
-				print("|cffffff00Busy and Away:|r Your AFK message will be set to your DND message. Upon returning your DND message will still be restored.")
+function SlashCmdList.BUSYANDAWAYA(msg)
+	Set("playermsg", msg)
+	SetPlayerDND(Grab("playermsg"))
+end
+
+-- Event Handlers
+function events:ADDON_LOADED()
+	-- Create or clear DB.
+	if not BusyAndAwayDB or (not UnitIsDND("player") and not UnitIsAFK("player")) then
+		local away = BusyAndAwayDB and BusyAndAwayDB.settings.awaymsg or 1
+		local bnaway = BusyAndAwayDB and BusyAndAwayDB.settings.bnawaymsg or 0
+		local bnbusy = BusyAndAwayDB and BusyAndAwayDB.settings.bnbusymsg or 0
+		BusyAndAwayDB = {settings = {awaymsg = away, bnawaymsg = bnaway, bnbusymsg = bnbusy}}
+	end
+end
+
+function events:PLAYER_FLAGS_CHANGED()
+	local dnd = UnitIsDND("player")
+	local afk = UnitIsAFK("player")
+
+	if dnd then
+		Set("busy", 1) 
+	elseif Grab("busy") and afk and Grab("playermsg") then -- Set AFK message to player's DND message.
+		if Grab("awaymsg") ~= 0 and Grab("playermsg") ~= "" then
+			if not Grab("away") then
+				SendChatMessage("", "AFK")
 			end
+			Set("away", 1)
+			SendChatMessage(Grab("playermsg"), "AFK")
+		else
+			Set("away", 1)
 		end
-	elseif event == "PLAYER_ENTERING_WORLD" then
-		if not UnitIsDND("player") and BAA_DNDMSG then
-			BAA_DNDMSG = nil
+	elseif not afk and not dnd then
+		if Grab("busy") and Grab("away") then -- Restore DND message.
+			Set("away", nil)
+			SendChatMessage(Grab("playermsg"), "DND")
+		elseif Grab("busy") then -- Cleared DND status.
+			Set("busy", nil)
+			Set("playermsg", nil)
 		end
-	elseif event == "CHAT_MSG_SYSTEM" then
-		local msg = ...
-		
-		if msg:find("You are now Busy:") then
-			BAA_DNDMSG = msg:match(":%s(.*)")
-		end
-	elseif event == "PLAYER_FLAGS_CHANGED" then
-		if UnitIsAFK("player") and BAA_DNDMSG then
-			if BAA_FLAGTYPE == 1 then
-				-- Need to /afk first to clear the afk and reset with the message.
-				ChatFrame1EditBox:SetText("/afk")
-				ChatEdit_SendText(ChatFrame1EditBox)
-				
-				ChatFrame1EditBox:SetText("/afk "..BAA_DNDMSG)
-				ChatEdit_SendText(ChatFrame1EditBox)
-			end
-			
-			flag = true			
-		elseif not UnitIsAFK("player") and not UnitIsDND("player") and BAA_DNDMSG then
-			if flag then
-				ChatFrame1EditBox:SetText("/busy "..BAA_DNDMSG)
-				ChatEdit_SendText(ChatFrame1EditBox)
-				flag = nil
+	end
+end
+
+function events:CHAT_MSG_BN_WHISPER(...)
+	if Grab("playermsg") then
+		if UnitIsDND("player") and Grab("bnbusymsg") ~= 0 then
+			BNSendWhisper(select(14, ...), "does not wish to be disturbed: " .. (Grab("playermsg") ~= "" and Grab("playermsg") or "DND"))
+		elseif UnitIsAFK("player") and Grab("bnawaymsg") ~= 0 then
+			if Grab("awaymsg") ~= 0 and Grab("playermsg") ~= "" then
+				BNSendWhisper(select(14, ...), "is Away: " .. Grab("playermsg"))
+				if not Grab("away") then
+					SendChatMessage("", "AFK")
+				end
+				Set("away", 1)
+				SendChatMessage(Grab("playermsg"), "AFK")
 			else
-				BAA_DNDMSG = nil
+				BNSendWhisper(select(14, ...), "is Away: AFK")
+				Set("away", 1)
+				SendChatMessage("", "AFK")
 			end
 		end
 	end
-end)
+end

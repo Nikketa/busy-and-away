@@ -3,6 +3,7 @@
 ## Notes: Restores your DND message when flagged AFK.
 ## Author: Niketa-Moonrunner (US)
 ## Version: @project-version@
-## SavedVariables: BAA_DNDMSG, BAA_FLAGTYPE
+## SavedVariables: BusyAndAwayDB
 
 Core.lua
+Options.lua
