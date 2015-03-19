@@ -1,6 +1,6 @@
 ## Interface: 60100
 ## Title: Busy and Away
-## Notes: Sets your AFK message to your DND message.
+## Notes: Restores your DND message when flagged AFK.
 ## Author: Niketa
 ## Version: @project-version@
 ## SavedVariables: BusyAndAwayDB
