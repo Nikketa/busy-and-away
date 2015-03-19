@@ -1,7 +1,14 @@
+<<<<<<< HEAD
 ## Interface: 60100
 ## Title: Busy and Away
 ## Notes: Restores your DND message when flagged AFK.
 ## Author: Niketa
+=======
+## Interface: 60000
+## Title: Busy and Away
+## Notes: Restores your DND message when flagged AFK.
+## Author: Niketa-Moonrunner (US)
+>>>>>>> 993281d858f44d00031ffa42c489076148a5dc19
 ## Version: @project-version@
 ## SavedVariables: BusyAndAwayDB
 
