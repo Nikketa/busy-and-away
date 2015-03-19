@@ -1,0 +1,9 @@
+## Interface: 60000
+## Title: Busy and Away
+## Notes: Restores your DND message when flagged AFK.
+## Author: Niketa-Moonrunner (US)
+## Version: @project-version@
+## SavedVariables: BusyAndAwayDB
+
+Core.lua
+Options.lua
