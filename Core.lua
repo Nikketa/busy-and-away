@@ -1,94 +1,155 @@
--- Event Frame
+-- Busy and Away --
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+local addon, ns = ...
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 local events = CreateFrame("Frame")
-	  events:RegisterEvent("ADDON_LOADED")
-	  events:RegisterEvent("PLAYER_FLAGS_CHANGED")
-	  events:RegisterEvent("CHAT_MSG_BN_WHISPER")
-	  events:SetScript("OnEvent", function(self, event, ...)
-		  return self[event] and self[event](self, event, ...)
-	  end)
+events:SetScript("OnEvent", function(self, event, ...)
+	return self[event] and self[event](self, event, ...)
+end)
 
--- My Lazy Functions
-local function Set(var, val)
-	if BusyAndAwayDB["settings"][var] then
-		BusyAndAwayDB["settings"][var] = val
-	else
-		BusyAndAwayDB[var] = val
-	end
-end
+events:RegisterEvent("ADDON_LOADED")
+events:RegisterEvent("PLAYER_FLAGS_CHANGED")
+events:RegisterEvent("CHAT_MSG_BN_WHISPER")
 
-local function Grab(var)
-	if BusyAndAwayDB["settings"][var] then
-		return BusyAndAwayDB["settings"][var]
-	else
-		return BusyAndAwayDB[var]
-	end
-end
+ns.events = events
 
--- Hijack Blizz DND slash commands.
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+events.db = setmetatable({}, {__index = function(t, k)
+    return _G["BusyAndAwayDB"][k]
+end})
+
+local db = events.db
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 local SetPlayerDND = SlashCmdList["CHAT_DND"]
 
-SLASH_BUSYANDAWAYA1, SLASH_BUSYANDAWAYA2 = "/busy", "/dnd"
+SLASH_BUSYANDAWAYA1, SLASH_BUSYANDAWAYA2, SLASH_BUSYANDAWAYB1 = "/busy", "/dnd", "/baa"
 
 function SlashCmdList.BUSYANDAWAYA(msg)
-	Set("playermsg", msg)
-	SetPlayerDND(Grab("playermsg"))
+	db.status.msg = msg or ""
+	SendChatMessage(db.status.msg, DEFAULT_DND_MESSAGE)
 end
 
--- Event Handlers
-function events:ADDON_LOADED()
-	-- Create or clear DB.
-	if not BusyAndAwayDB or (not UnitIsDND("player") and not UnitIsAFK("player")) then
-		local away = BusyAndAwayDB and BusyAndAwayDB.settings.awaymsg or 1
-		local bnaway = BusyAndAwayDB and BusyAndAwayDB.settings.bnawaymsg or 0
-		local bnbusy = BusyAndAwayDB and BusyAndAwayDB.settings.bnbusymsg or 0
-		BusyAndAwayDB = {settings = {awaymsg = away, bnawaymsg = bnaway, bnbusymsg = bnbusy}}
+function SlashCmdList.BUSYANDAWAYB(msg)
+	InterfaceOptionsFrame_OpenToCategory(events.addon.panel)
+	InterfaceOptionsFrame_OpenToCategory(events.addon.panel)
+end
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+local version = 2
+
+function events:ADDON_LOADED(event, addon, ...)
+	if addon == "BusyAndAway" then
+		if not BusyAndAwayDB or not BusyAndAwayDB.version then
+			BusyAndAwayDB = {
+				settings = {
+					awaymsg = 1,
+					bnaway = 0,
+					bnbusy = 0,
+					remember = 1,
+					bnlimit = 60
+				},
+				status = {
+					away = 0,
+					busy = 0,
+					hold = {},
+					msg = ""
+				},
+				version = version
+			}
+		elseif BusyAndAwayDB then
+			if db.settings.remember == 1 then
+				events:RegisterEvent("PLAYER_ENTERING_WORLD")
+			else
+				db.status.away = 0
+				db.status.busy = 0
+				db.status.msg = ""
+			end
+
+			db.status.hold = {}
+		end
 	end
 end
 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+function events:PLAYER_ENTERING_WORLD(event, ...)
+	if db.status.busy == 1 and not UnitIsDND("player") then
+		SendChatMessage(db.status.msg, DEFAULT_DND_MESSAGE)
+	end
+end
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 function events:PLAYER_FLAGS_CHANGED()
 	local dnd = UnitIsDND("player")
 	local afk = UnitIsAFK("player")
 
 	if dnd then
-		Set("busy", 1) 
-	elseif Grab("busy") and afk and Grab("playermsg") then -- Set AFK message to player's DND message.
-		if Grab("awaymsg") ~= 0 and Grab("playermsg") ~= "" then
-			if not Grab("away") then
-				SendChatMessage("", "AFK")
+		db.status.busy = 1
+	elseif db.status.busy == 1 and afk then -- Trigger to restore DND message when back.
+		if db.settings.awaymsg == 1 and db.status.msg ~= "" then -- Set AFK message to DND message.
+			if db.status.away == 0 then
+				SendChatMessage("", DEFAULT_AFK_MESSAGE)
 			end
-			Set("away", 1)
-			SendChatMessage(Grab("playermsg"), "AFK")
+			db.status.away = 1
+			SendChatMessage(db.status.msg, DEFAULT_AFK_MESSAGE)
 		else
-			Set("away", 1)
+			db.status.away = 1
 		end
 	elseif not afk and not dnd then
-		if Grab("busy") and Grab("away") then -- Restore DND message.
-			Set("away", nil)
-			SendChatMessage(Grab("playermsg"), "DND")
-		elseif Grab("busy") then -- Cleared DND status.
-			Set("busy", nil)
-			Set("playermsg", nil)
+		if db.status.busy == 1 and db.status.away == 1 then -- Restore DND message.
+			db.status.away = 0
+			SendChatMessage(db.status.msg, DEFAULT_DND_MESSAGE)
+		elseif db.status.busy == 1 then -- Clear DND status.
+			db.status.busy = 0
+			db.status.msg = ""
 		end
 	end
 end
 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+function events:CreateTimer(friend)
+	if not db.status.hold[friend] then
+		db.status.hold[friend] = 1
+		C_Timer.After(db.settings.bnlimit, function()
+			db.status.hold[friend] = nil
+		end)
+	end
+end
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 function events:CHAT_MSG_BN_WHISPER(...)
-	if Grab("playermsg") then
-		if UnitIsDND("player") and Grab("bnbusymsg") ~= 0 then
-			BNSendWhisper(select(14, ...), "does not wish to be disturbed: " .. (Grab("playermsg") ~= "" and Grab("playermsg") or "DND"))
-		elseif UnitIsAFK("player") and Grab("bnawaymsg") ~= 0 then
-			if Grab("awaymsg") ~= 0 and Grab("playermsg") ~= "" then
-				BNSendWhisper(select(14, ...), "is Away: " .. Grab("playermsg"))
-				if not Grab("away") then
-					SendChatMessage("", "AFK")
-				end
-				Set("away", 1)
-				SendChatMessage(Grab("playermsg"), "AFK")
-			else
-				BNSendWhisper(select(14, ...), "is Away: AFK")
-				Set("away", 1)
-				SendChatMessage("", "AFK")
+	local friend = select(14, ...)
+
+	if db.status.hold[friend] then
+		return
+	elseif db.settings.bnaway == 0 and db.settings.bnbusy == 0 then
+		db.status.hold = {}
+		return
+	end
+
+	if db.settings.bnlimit > 0 then
+		events:CreateTimer(friend)
+	end
+
+	local dnd = UnitIsDND("player")
+	local afk = UnitIsAFK("player")
+
+	if afk and db.settings.bnaway == 1 then
+		if db.settings.awaymsg ~= 0 and db.status.msg ~= "" then
+			BNSendWhisper(friend, string.format(CHAT_AFK_GET, "") .. db.status.msg)
+			if db.status.away == 0 then
+				SendChatMessage("", DEFAULT_AFK_MESSAGE)
 			end
+			db.status.away = 1
+			SendChatMessage(db.status.msg, DEFAULT_AFK_MESSAGE)
+		else
+			BNSendWhisper(friend, string.format(CHAT_AFK_GET, "") .. DEFAULT_AFK_MESSAGE)
+			db.status.away = 1
+			SendChatMessage("", DEFAULT_AFK_MESSAGE)
 		end
+
+	elseif dnd and db.settings.bnbusy == 1 then
+		BNSendWhisper(friend, string.format(CHAT_DND_GET, "") .. (db.status.msg ~= "" and db.status.msg or DEFAULT_DND_MESSAGE))
 	end
 end
