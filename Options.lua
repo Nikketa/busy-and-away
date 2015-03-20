@@ -1,108 +1,184 @@
--- Create options panel.
+-- Busy and Away --
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+local addon, ns = ...
+local events = ns.events
+local db = events.db
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 local addon = {}
 addon.panel = CreateFrame("Frame", nil, UIParent)
-addon.panel:Hide()
 addon.panel.name = "Busy and Away"
+addon.panel:Hide()
+events.addon = addon
 
-addon.childpanel = CreateFrame("Frame", nil, addon.panel)
-addon.childpanel.name = "Help"
-addon.childpanel.parent = addon.panel.name
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+local L = setmetatable({}, {__index = function(t, k)
+    local v = tostring(k)
+    rawset(t, k, v)
+    return v
+end})
 
--- Create addon slash command.
-SLASH_BUSYANDAWAYB1 = "/baa"
+local Locale = GetLocale()
 
-function SlashCmdList.BUSYANDAWAYB(msg)
-	if msg == "help" then
-		InterfaceOptionsFrame_OpenToCategory(addon.childpanel)
-		InterfaceOptionsFrame_OpenToCategory(addon.childpanel)
-	else
-		InterfaceOptionsFrame_OpenToCategory(addon.panel)
-		InterfaceOptionsFrame_OpenToCategory(addon.panel)
-	end
+if Locale == "deDE" then
+elseif Locale == "esES" then
+elseif Locale == "frFR" then
+elseif Locale == "koKR" then
+elseif Locale == "ptBR" then
+elseif Locale == "ruRU" then
+elseif Locale == "zhCN" then
+elseif Locale == "zhTW" then
 end
 
--- Main Panel
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 local title = addon.panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	  title:SetText("Busy and Away")
-	  title:SetPoint("TOPLEFT", 20, -15)
+title:SetText(L["Busy and Away"])
+title:SetPoint("TOPLEFT", 20, -15)
 
 local settings = addon.panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	  settings:SetText("Settings")
-	  settings:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -15)
+settings:SetText(L["Settings"])
+settings:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -15)
 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 local awaymsg = CreateFrame("CheckButton", nil, addon.panel, "OptionsBaseCheckButtonTemplate")
-	  awaymsg:SetPoint("TOPLEFT", settings, "BOTTOMLEFT", 0, -10)
-	  awaymsg:SetScript("OnClick", function(self)
-		  if self:GetChecked() then
-			  BusyAndAwayDB["settings"]["awaymsg"] = 1
-		  else
-			  BusyAndAwayDB["settings"]["awaymsg"] = 0
-		  end
-	  end)
-	  awaymsg:SetScript("OnShow", function(self)
-		  if BusyAndAwayDB["settings"]["awaymsg"] ~= 0 then
-			  self:SetChecked()
-		  end
-	  end)
+awaymsg:SetPoint("TOPLEFT", settings, "BOTTOMLEFT", 0, -10)
+
+awaymsg:SetScript("OnClick", function(self)
+	db.settings.awaymsg = self:GetChecked() and 1 or 0
+end)
+
+awaymsg:SetScript("OnShow", function(self)
+	self:SetChecked(db.settings.awaymsg == 1 or false)
+end)
 
 local awaymsglbl = awaymsg:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	  awaymsglbl:SetText("Set AFK message to DND message")
+	  awaymsglbl:SetText(L["Use DND message for AFK message"])
 	  awaymsglbl:SetPoint("LEFT", awaymsg, "RIGHT", 5, 1)
 
-local bnawaymsg = CreateFrame("CheckButton", nil, addon.panel, "OptionsBaseCheckButtonTemplate")
-	  bnawaymsg:SetPoint("TOPLEFT", awaymsg, "BOTTOMLEFT", 0, -5)
-	  bnawaymsg:SetScript("OnClick", function(self)
-		  if self:GetChecked() then
-			  BusyAndAwayDB["settings"]["bnawaymsg"] = 1
-		  else
-			  BusyAndAwayDB["settings"]["bnawaymsg"] = 0
-		  end
-	  end)
-	  bnawaymsg:SetScript("OnShow", function(self)
-		  if BusyAndAwayDB["settings"]["bnawaymsg"] ~= 0 then
-			  self:SetChecked()
-		  end
-	  end)
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+local remember = CreateFrame("CheckButton", nil, addon.panel, "OptionsBaseCheckButtonTemplate")
+remember:SetPoint("TOPLEFT", awaymsg, "BOTTOMLEFT", 0, -5)
 
-local bnawaymsglbl = bnawaymsg:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	  bnawaymsglbl:SetText("Send AFK reply to BN whispers")
-	  bnawaymsglbl:SetPoint("LEFT", bnawaymsg, "RIGHT", 5, 1)
+remember:SetScript("OnClick", function(self)
+	db.settings.remember = self:GetChecked() and 1 or 0
+end)
 
-local bnbusymsg = CreateFrame("CheckButton", nil, addon.panel, "OptionsBaseCheckButtonTemplate")
-	  bnbusymsg:SetPoint("TOPLEFT", bnawaymsg, "BOTTOMLEFT", 0, -5)
-	  bnbusymsg:SetScript("OnClick", function(self)
-		  if self:GetChecked() then
-			  BusyAndAwayDB["settings"]["bnbusymsg"] = 1
-		  else
-			  BusyAndAwayDB["settings"]["bnbusymsg"] = 0
-		  end
-	  end)
-	  bnbusymsg:SetScript("OnShow", function(self)
-		  if BusyAndAwayDB["settings"]["bnbusymsg"] ~= 0 then
-			  self:SetChecked()
-		  end
-	  end)
+remember:SetScript("OnShow", function(self)
+	self:SetChecked(db.settings.remember == 1 or false)
+end)
 
-local bnbusymsglbl = bnbusymsg:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	  bnbusymsglbl:SetText("Send DND reply to BN whispers")
-	  bnbusymsglbl:SetPoint("LEFT", bnbusymsg, "RIGHT", 5, 1)
+local rememberlbl = remember:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	  rememberlbl:SetText(L["Remember your DND status and message when logging in"])
+	  rememberlbl:SetPoint("LEFT", remember, "RIGHT", 5, 1)
 
--- Help Panel
-local childtitle = addon.childpanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	  childtitle:SetText("Busy and Away")
-	  childtitle:SetPoint("TOPLEFT", 20, -15)
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+local bnaway = CreateFrame("CheckButton", nil, addon.panel, "OptionsBaseCheckButtonTemplate")
+bnaway:SetPoint("TOPLEFT", remember, "BOTTOMLEFT", 0, -5)
 
-local help = addon.childpanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	  help:SetText("Help")
-	  help:SetPoint("TOPLEFT", childtitle, "BOTTOMLEFT", 0, -15)
+bnaway:SetScript("OnClick", function(self)
+	db.settings.bnaway = self:GetChecked() and 1 or 0
+end)
 
-local text = addon.childpanel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	  text:SetText("At the moment this addon is pretty straight forward and I don't anticipate anyone really having any questions. That being said, if you need assistance contact me via the addon page on Curse or WoW Interface or email me at addons@niketa.net.")
-	  text:SetPoint("TOPLEFT", help, "BOTTOMLEFT", 0, -10)
-	  text:SetJustifyH("LEFT")
-	  text:CanWordWrap(true)
-	  text:SetWidth(580)
+bnaway:SetScript("OnShow", function(self)
+	self:SetChecked(db.settings.bnaway == 1 or false)
+end)
+	 
+local bnawaylbl = bnaway:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	  bnawaylbl:SetText(L["Auto-respond to Battle.net whispers when AFK"])
+	  bnawaylbl:SetPoint("LEFT", bnaway, "RIGHT", 5, 1)
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+local bnbusy = CreateFrame("CheckButton", nil, addon.panel, "OptionsBaseCheckButtonTemplate")
+bnbusy:SetPoint("TOPLEFT", bnaway, "BOTTOMLEFT", 0, -5)
+
+bnbusy:SetScript("OnClick", function(self)
+	db.settings.bnbusy = self:GetChecked() and 1 or 0
+end)
+
+bnbusy:SetScript("OnShow", function(self)
+	self:SetChecked(db.settings.bnbusy == 1 or false)
+end)
+
+local bnbusylbl = bnbusy:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	  bnbusylbl:SetText(L["Auto-respond to Battle.net whispers when busy"])
+	  bnbusylbl:SetPoint("LEFT", bnbusy, "RIGHT", 5, 1)
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+local bnlimitlbl = addon.panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+bnlimitlbl:SetPoint("TOPLEFT", bnbusy, "BOTTOMLEFT", 10, -30)
+bnlimitlbl:SetWidth(250)
+bnlimitlbl:CanWordWrap(true)
+bnlimitlbl:SetText(L["Set the minimum time in between auto-responses per person in seconds. For example, if you have this set to 60 seconds, the auto-response will not reply to each individual person until at least a minute has past (to prevent spamming your friends)."])
+bnlimitlbl:SetJustifyH("LEFT")
+
+local bnlimit = CreateFrame("Slider", "bnlimitSlider", addon.panel, "OptionsSliderTemplate")
+bnlimit:SetPoint("LEFT", bnlimitlbl, "RIGHT", 50, 0)
+getglobal(bnlimit:GetName() .. "Low"): SetText("0")
+getglobal(bnlimit:GetName() .. "High"): SetText("600")
+bnlimit:SetOrientation("HORIZONTAL")
+bnlimit:SetSize(200, 20)
+bnlimit:SetMinMaxValues(0, 600)
+bnlimit:SetValueStep(1)
 
 
+local bnlimitedit = CreateFrame("EditBox", nil, addon.panel, "InputBoxTemplate")
+bnlimitedit:SetPoint("TOP", bnlimit, "BOTTOM", 0, -10)
+bnlimitedit:SetSize(50, 20)
+bnlimitedit:SetBackdropColor(0, 0, 0, 0.5)
+bnlimitedit:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.8)
+bnlimitedit:SetFontObject(GameFontHighlightSmall)
+bnlimitedit:SetJustifyH("CENTER")
+bnlimitedit:SetAutoFocus(false)
+
+bnlimitedit:SetScript("OnEnterPressed", function(self)
+	local text = tonumber(self:GetText())
+	if text then
+		if text < 0 then
+			text = 0
+		elseif text > 600 then
+			text = 600
+		end
+
+		text = floor(text/1)*1
+
+		db.settings.bnlimit = text
+		bnlimit:SetValue(db.settings.bnlimit)
+		getglobal(bnlimit:GetName() .. "Text"): SetText(db.settings.bnlimit .. " sec")
+		self:SetText(text)
+		db.status.hold = {}
+		self:ClearFocus()
+	else
+		bnlimitedit:SetText(db.settings.bnlimit)
+		self:HighlightText()
+	end
+end)
+
+bnlimitedit:SetScript("OnEscapePressed", function(self)
+	self:ClearFocus()
+end)
+
+bnlimitedit:SetScript("OnEditFocusGained", function(self)
+	self:HighlightText()
+end)
+
+bnlimitedit:SetScript("OnEditFocusLost", function(self)
+	self:HighlightText(0, 0)
+end)
+
+bnlimit:SetScript("OnShow", function(self)
+	self:SetValue(db.settings.bnlimit)
+	getglobal(self:GetName() .. "Text"): SetText(db.settings.bnlimit .. " sec")
+	bnlimitedit:SetText(db.settings.bnlimit)
+end)
+
+bnlimit:SetScript("OnValueChanged", function(self, value)
+	db.settings.bnlimit = floor(value/1)*1
+	getglobal(self:GetName() .. "Text"): SetText(db.settings.bnlimit .. " sec")
+	bnlimitedit:SetText(db.settings.bnlimit)
+	db.status.hold = {}
+end)
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 InterfaceOptions_AddCategory(addon.panel)
-InterfaceOptions_AddCategory(addon.childpanel)
